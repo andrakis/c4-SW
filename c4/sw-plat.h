@@ -34,9 +34,13 @@ void     sw_plat_sleep (int ms);
 extern int sw_testing;				// -sum: a test, on its own clock
 extern int sw_showing;				// the frames go to the display
 extern int sw_home;				// -home: the person's own GRP
+extern int sw_nosound;				// -nosound: no sound and no music
+extern int sw_trace;				// -trace: the player's place each frame
+int      sw_c4arg (const char *arg);		// one of c4's own switches (no '-')
 void     sw_sum_args (int argc, char **argv);
 void     sw_sum_level (void);			// a level is being played
-uint32_t sw_ms (void);
+uint32_t sw_ms (void);				// the clock, which a test's moves a little
+uint32_t sw_now (void);				// the clock, read without moving it
 void     sw_sleep (int ms);
 void     sw_sum_frame (uint8_t *pixels, int w, int h);
 void     sw_sum_palette (uint8_t *palette);	// 256 entries of r, g, b, 0 (0-255)

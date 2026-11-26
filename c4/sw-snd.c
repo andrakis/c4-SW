@@ -407,8 +407,8 @@ int FX_Init(int SoundCard, int numvoices, int *numchannels, int *samplebits, int
 	*samplebits = 8;
 	(void) mixrate;
 	if (fx_on) FX_Shutdown();
-	// no card: the game plays silent rather than without its menus' sounds
-	if (!has_card(SND_HAS_PCM)) { FX_ErrorCode = C4_NoCard; return FX_Ok; }
+	// no card: the game turns its sound off (sounds.c, under C4SW)
+	if (!has_card(SND_HAS_PCM)) { FX_ErrorCode = C4_NoCard; return FX_Error; }
 	memset(voice, 0, sizeof voice);
 	fx_on = 1;
 	return FX_Ok;

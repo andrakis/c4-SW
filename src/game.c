@@ -3151,6 +3151,14 @@ RunLevel(VOID)
         //MONO_PRINT("Before DrawScreen");
         drawscreen(Player + screenpeek);
         //MONO_PRINT("After DrawScreen");
+#ifdef C4SW
+        if (sw_trace)   // c4: where the player is, to compare two builds
+            {
+            PLAYERp tp = Player + screenpeek;
+            printf("trace %d: %d %d %d %d %d %d %d %d\n", totalclock, tp->posx, tp->posy, tp->posz,
+                   tp->pang, tp->horiz, tp->xvect, tp->yvect, tp->cursectnum);
+            }
+#endif
 
         if (QuitFlag)
             break;
@@ -3709,6 +3717,11 @@ int app_main(int argc, char const * const argv[])
         // Store arg in command line array!
         CON_StoreArg(arg);
         arg++;
+
+#ifdef C4SW
+        // c4's own switches (sw-sum.c): -sum is no skill, nor -home a -h
+        if (sw_c4arg(arg)) continue;
+#endif
 
         if (Bstrcasecmp(arg, "net") == 0)
             {
@@ -5941,6 +5954,13 @@ RandomRange(int range)
 
     return(value);
     }
+#endif
+#ifdef C4SW
+// c4: rand is sw_rand in every build (sw-sum.c), 0 to 32767, so RAND_MAX is
+// that in every build too: gcc's glibc says 2147483647, and its screen
+// shakes (QuakeViewChange) came out other than c4lc's
+#undef RAND_MAX
+#define RAND_MAX 32767
 #endif
 
 int

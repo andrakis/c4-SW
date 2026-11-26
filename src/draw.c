@@ -32,6 +32,9 @@ Prepared for public release: 03/28/2005 - Charlie Wiederhold, 3D Realms
 #include "names2.h"
 #include "panel.h"
 #include "game.h"
+#ifdef C4SW
+#include "sw-plat.h"
+#endif
 #include "quake.h"
 #include "vis.h"
 
@@ -2236,6 +2239,10 @@ void FAF_DrawRooms(int x, int y, int z, short ang, int horiz, short sectnum)
             }
         }
 
+#ifdef C4SW
+    if (sw_trace)
+        printf("rooms %d %d %d %d %d %d\n", x, y, z, ang, horiz, sectnum);
+#endif
     drawrooms(x,y,z,ang,horiz,sectnum);
 
     TRAVERSE_SPRITE_STAT(headspritestat[STAT_CEILING_FLOOR_PIC_OVERRIDE], i, nexti)
@@ -2354,6 +2361,10 @@ drawscreen(PLAYERp pp)
     tang = camerapp->oang + mulscale(((camerapp->pang + 1024 - camerapp->oang) & 2047) - 1024, smoothratio, 16);
     thoriz = camerapp->ohoriz + mulscale(camerapp->horiz - camerapp->ohoriz, smoothratio, 16);
     tsectnum = camerapp->cursectnum;
+#ifdef C4SW
+    if (sw_trace)   // c4: the view, to compare two builds
+        printf("view %d %d %d: %d %d %d %d %d\n", totalclock, ototalclock, smoothratio, tx, ty, tz, tang, thoriz);
+#endif
 
     //ASSERT(tsectnum >= 0 && tsectnum <= MAXSECTORS);
     // if updatesectorz is to sensitive try COVERupdatesector

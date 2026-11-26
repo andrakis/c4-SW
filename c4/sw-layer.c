@@ -453,6 +453,7 @@ int handleevents (void)
 			break;
 		}
 	}
+	sw_ms ();		// a test's clock moves as the game looks for input
 	sampletimer ();
 	return rv;
 }
@@ -474,7 +475,7 @@ int inittimer (int tickspersecond, void (*callback) (void))
 	if (timerticspersec)
 		return 0;
 	timerticspersec = tickspersecond;
-	timerlastsample = ms_ticks (sw_ms ());
+	timerlastsample = ms_ticks (sw_now ());
 	usertimercallback = callback;
 	return 0;
 }
@@ -492,7 +493,7 @@ void sampletimer (void)
 	sw_snd_poll ();
 	if (!timerticspersec)
 		return;
-	n = ms_ticks (sw_ms ()) - timerlastsample;
+	n = ms_ticks (sw_now ()) - timerlastsample;
 	if (n > 0)
 	{
 		totalclock += n;

@@ -15,6 +15,11 @@
 //   -show        and show the frames, so that a run's time counts the drawing
 //   -shot N      every Nth frame as shotN.ppm
 //   -home        play the person's own SW.GRP, from /home
+//   -nosound     no sound and no music (a test's frames are the same either
+//                way, but gcc's build has no card to play them on)
+//
+// The game reads its own switches by their first letters (-s2 is a
+// skill, and so would -sum be): it passes over these (sw_c4arg).
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +30,8 @@
 int sw_testing;
 int sw_showing;
 int sw_home;
+int sw_nosound;
+int sw_trace;
 static int dosum, stopat, script, shot, menu;
 static int frames;
 static uint32_t sum, virt_ms, ms0;
@@ -46,14 +53,24 @@ void sw_srand (unsigned s)
 
 // ---- the clock ----
 
-// A test's clock moves a millisecond each time it is read, which is the
-// same in every build, and a frame's time at each frame (a game tic is
-// 1/40 s; a frame is 1/30): the game then runs about a tic a frame,
-// whatever the machine.
+// A test's clock moves a millisecond each time the game looks for its
+// input (sw_ms), which is the same in every build, and a frame's time at
+// each frame (a game tic is 1/40 s; a frame is 1/30): the game then runs
+// about a tic a frame, whatever the machine. The engine also samples the
+// timer while it draws, from inside its loops over walls and columns
+// (faketimerhandler); those reads (sw_now) do not move it, since how often
+// they come is the renderer's business, not the game's.
 uint32_t sw_ms (void)
 {
 	if (sw_testing)
 		return ++virt_ms;
+	return sw_plat_ms ();
+}
+
+uint32_t sw_now (void)
+{
+	if (sw_testing)
+		return virt_ms;
 	return sw_plat_ms ();
 }
 
@@ -95,6 +112,10 @@ void sw_sum_args (int argc, char **argv)
 			sw_home = 1;
 		else if (!strcmp (argv[i], "-shot") && i + 1 < argc)
 			shot = atoi (argv[i + 1]);
+		else if (!strcmp (argv[i], "-nosound"))
+			sw_nosound = 1;
+		else if (!strcmp (argv[i], "-trace"))
+			sw_trace = 1;
 	}
 	if (!sw_testing)
 		sw_showing = 1;
@@ -102,6 +123,18 @@ void sw_sum_args (int argc, char **argv)
 	// bare machine and under C4DOS there is only the one directory, and the
 	// chdir fails.
 	chdir ("/usr/games/sw");
+}
+
+// c4's own switches, which the game passes over (game.c)
+int sw_c4arg (const char *arg)
+{
+	static const char *mine[] = { "sum", "frames", "script", "menu", "show", "shot", "home",
+				      "nosound", "window", "trace", 0 };
+	int i;
+	for (i = 0; mine[i]; i++)
+		if (!strcmp (arg, mine[i]))
+			return 1;
+	return 0;
 }
 
 // ---- the GRP ----
@@ -262,6 +295,8 @@ void sw_sum_frame (uint8_t *pixels, int w, int h)
 	if (!frames)
 		ms0 = sw_plat_ms ();
 	++frames;
+	if (sw_trace)
+		printf ("frame %d at %u ms\n", frames, virt_ms);
 	if (sw_testing)
 		virt_ms += 33;
 	if (dosum)
@@ -278,6 +313,38 @@ void sw_sum_frame (uint8_t *pixels, int w, int h)
 		sum = s;
 		if (dosum > 1 && frames % dosum == 0)
 			printf ("sum: frame %d %08x\n", frames, s);
+	}
+	// -trace with -shot: each row's and each column's sum, to tell where
+	// two builds draw a frame apart (on the bare machine, which writes
+	// no file the host can read, too)
+	if (sw_trace && shot && frames % shot == 0)
+	{
+		int x, y;
+		uint32_t r;
+		for (y = 0; y < h; y++)
+		{
+			for (r = 0, x = 0; x < w; x++)
+				r = r * 31 + pixels[y * w + x];
+			printf ("row %d %08x\n", y, r);
+		}
+		for (x = 0; x < w; x++)
+		{
+			for (r = 0, y = 0; y < h; y++)
+				r = r * 31 + pixels[y * w + x];
+			printf ("col %d %08x\n", x, r);
+		}
+		// and the frame itself, with its palette, as hex
+		for (y = 0; y < h; y++)
+		{
+			printf ("pix %d ", y);
+			for (x = 0; x < w; x++)
+				printf ("%02x", pixels[y * w + x]);
+			printf ("\n");
+		}
+		printf ("pal ");
+		for (x = 0; x < 768; x++)
+			printf ("%02x", pal[(x / 3) * 4 + x % 3]);
+		printf ("\n");
 	}
 	// -shot N: frame N as shotN.ppm, to see what a test plays
 	if (shot && frames % shot == 0)

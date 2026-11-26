@@ -21,7 +21,10 @@ typedef unsigned int       uintptr_t;
 #define UINT8_MAX  255
 #define UINT16_MAX 65535
 #define UINT32_MAX 4294967295u
-#define SIZE_MAX   4294967295u
+// size_t is an int in C4IX's libc, as every word is (its libc.h): the
+// largest it holds. (4294967295u, an unsigned SIZE_MAX, was -1 there,
+// and JFBuild's cache took every place as full.)
+#define SIZE_MAX   2147483647
 #define INTPTR_MAX INT32_MAX
 #define UINTPTR_MAX UINT32_MAX
 #endif

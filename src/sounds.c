@@ -41,6 +41,9 @@ Prepared for public release: 03/28/2005 - Charlie Wiederhold, 3D Realms
 #include "panel.h"
 #include "game.h"
 #include "sounds.h"
+#ifdef C4SW
+#include "sw-plat.h"
+#endif
 #include "ai.h"
 #include "net.h"
 
@@ -1213,7 +1216,11 @@ SoundStartup(void)
     int fxdevicetype;
 
     // if they chose None lets return
+#ifdef C4SW
+    if (FXDevice < 0 || sw_nosound) {   // c4: or -nosound
+#else
     if (FXDevice < 0) {
+#endif
         gs.FxOn = FALSE;
         return;
     } else if (FXDevice == 0) {
@@ -1241,6 +1248,14 @@ SoundStartup(void)
     if (status != FX_Ok)
         {
         buildprintf("Sound error: %s\n",FX_ErrorString(FX_Error));
+#ifdef C4SW
+        // c4: no sound, as if None were chosen. Left on, the game queues
+        // its sounds still; an intermittent one that cannot start queues
+        // itself again in the same pass, without end, until the memory
+        // runs out (jfaudiolib's own null driver "plays" them silently).
+        gs.FxOn = FALSE;
+        return;
+#endif
         }
 
     status = FX_SetCallBack(SoundCallBack);
@@ -1311,7 +1326,11 @@ void MusicStartup( void )
     int devicetype;
 
     // if they chose None lets return
+#ifdef C4SW
+    if (MusicDevice < 0 || sw_nosound)
+#else
     if (MusicDevice < 0)
+#endif
         {
         gs.MusicOn = FALSE;
         return;
