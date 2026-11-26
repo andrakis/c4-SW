@@ -94,9 +94,15 @@ PHONY += sw-data
 # changed as a player changes it, in the game's menu (Options, Screen
 # Menu, Resolution, Apply Settings: -menu, from 320x200 to 400x300), and
 # played on so; then quit from the game's menu (Quit, Y), which must end
-# it.
+# it. And on the bare machine once more with the sound and the music on,
+# on a sound card with a General MIDI synth (cli.js --midi, sw-snd.c):
+# the music as MIDI, drums and all (midi-notes.mjs). Its frames are not
+# the silent runs': the game's ambient sounds draw on its random numbers
+# when they can play. Without the accelerators: the music's time is the
+# machine's, and the notes counted are those the 600 frames take.
 SW_RUN := -level1 -s2 -nosound -sum 50 -frames 600 -script
 SW_RES := -level1 -s2 -nosound -sum 20 -frames 500 -menu
+SW_GM  := -level1 -s2 -sum 50 -frames 600 -script
 test-sw: sw-data sw-host c4bb-images test-libc-bare
 	@rm -rf .sw_t && mkdir -p .sw_t
 	@cp $(SW_DATA)/SWSW.GRP .sw_t/
@@ -109,14 +115,20 @@ test-sw: sw-data sw-host c4bb-images test-libc-bare
 	     > ../../../../.sw_t/dos.out 2>/dev/null; wait; }
 	@printf 'sw $(SW_RUN)\nexit\n' | timeout 1800 node libjs/cli.js -m 128 -d src/c4bb/images/disk src/c4bb/images/c4ix32.c4r \
 	   2>/dev/null > .sw_t/c4ix.out
-	@printf 'sw $(SW_RES)\nexit\n' | timeout 1800 node libjs/cli.js -m 128 -d src/c4bb/images/disk src/c4bb/images/c4ix32.c4r \
-	   2>/dev/null > .sw_t/res.out
+	@{ cd src/c4bb/images/games && timeout 1800 node ../../../../libjs/cli.js -m 128 --no-accel -d . --midi ../../../../.sw_t/gm.txt sw.c4r \
+	     $(SW_GM) > ../../../../.sw_t/gm.out 2>/dev/null; } & \
+	 printf 'sw $(SW_RES)\nexit\n' | timeout 1800 node libjs/cli.js -m 128 -d src/c4bb/images/disk src/c4bb/images/c4ix32.c4r \
+	   2>/dev/null > .sw_t/res.out; wait
 	@for w in bare dos c4ix; do grep '^sum\|^timedemo' .sw_t/$$w.out | cmp -s .sw_t/host.txt - \
 	   || { echo "test-sw: $$w's frames differ:"; tail -5 .sw_t/$$w.out; exit 1; }; done
 	@grep '^sum\|^timedemo' .sw_t/res.out | cmp -s .sw_t/res.txt - \
 	   || { echo "test-sw: with the screen size changed in the menu, the frames differ:"; tail -5 .sw_t/res.out; exit 1; }
 	@grep -q '^sw: quit from the game' .sw_t/res.out \
 	   || { echo "test-sw: the game's quit did not end it:"; tail -5 .sw_t/res.out; exit 1; }
+	@grep -q '^timedemo: 600 frames' .sw_t/gm.out \
+	   || { echo "test-sw: with the sound and the music on, the game did not play on:"; tail -5 .sw_t/gm.out; exit 1; }
+	@m=$$(node libjs/tests/src/midi-notes.mjs .sw_t/gm.txt 1000 4) && echo "test-sw: General MIDI: $$m" \
+	   || { echo "test-sw: the General MIDI music did not play: $$m"; exit 1; }
 	@grep -A1 '^timedemo' .sw_t/dos.out | grep -Eq '^A(:\\)?>C4DOS version' \
 	   || { echo "test-sw: C4DOS did not come back to its prompt:"; tail -5 .sw_t/dos.out; exit 1; }
 	@rm -rf .sw_t

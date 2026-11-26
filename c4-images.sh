@@ -10,7 +10,7 @@ c4ix)
         say "linking Shadow Warrior for C4IX"
         ./c4rlink32 .sw/*.c4o .sw/plat/sw-c4ix.c4o -l $PB/lib/libc.c4s -o $DISK/c4ix-sw.c4r > /dev/null
         if [ -f $GAMEDIR/data/SWSW.GRP ]; then
-            cp $GAMEDIR/data/SWSW.GRP $DISK/
+            cp $GAMEDIR/data/SWSW.GRP $GAMEDIR/data/SW.RTS $DISK/
             cp $GAMEDIR/data/LICENSE.TXT $DISK/sw-license.txt
         fi
         # the Build engine's licence travels with the engine (BUILDLIC.TXT)
@@ -20,8 +20,10 @@ bare)
     if [ -f .sw/sw-sum.c4o ]; then
         item sw
         ./c4rlink32 .sw/*.c4o .sw/plat/sw-bare.c4o .libc-bare/libc-*.c4o -o $GAMESDISK/sw.c4r > /dev/null
+        # the games disk is flat, and Duke Nukem 3D's BUILDLIC.TXT is there
+        cp $GAMEDIR/jfbuild/buildlic.txt $GAMESDISK/SWBUILD.TXT
         if [ -f $GAMEDIR/data/SWSW.GRP ]; then
-            cp $GAMEDIR/data/SWSW.GRP $GAMESDISK/
+            cp $GAMEDIR/data/SWSW.GRP $GAMEDIR/data/SW.RTS $GAMESDISK/
             cp $GAMEDIR/data/LICENSE.TXT $GAMESDISK/SWLIC.TXT
         fi
         GAMES_ON_DISK="$GAMES_ON_DISK SW"

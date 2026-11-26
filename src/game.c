@@ -760,7 +760,13 @@ LoadLevel(char *filename)
 VOID
 LoadImages(char *filename)
     {
+#ifdef C4SW
+    // c4: the art's cache is 12 MB, as Duke Nukem 3D's port has it (as much
+    // as DOS gave it): C4IX and the page's machines have less to spare
+    if (loadpics(filename, 12*1048576) == -1)
+#else
     if (loadpics(filename, 32*1048576) == -1)
+#endif
         {
         TerminateGame();
         wm_msgbox(NULL, "Art not found. Please check your GRP file.");

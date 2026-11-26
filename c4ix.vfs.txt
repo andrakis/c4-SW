@@ -6,5 +6,6 @@
 sw/:
 	sw.c4r: c4ix-sw.c4r
 	SWSW.GRP
+	sw.rts: SW.RTS
 	LICENSE.TXT: sw-license.txt
 	BUILDLIC.TXT: sw-buildlic.txt
