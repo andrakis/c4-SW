@@ -8136,12 +8136,26 @@ int loadpics(char *filename, int askedsize)
 		cachesize = (Bgetsysmemsize()/100)*60;
 	else
 		cachesize = askedsize;
+#ifdef C4SW
+	// c4: 15 bytes more, so that the cache initcache aligns to 16 is
+	// cachesize long wherever malloc's block starts. glibc's start on 16,
+	// c4's libcs' not, and a cache 16 bytes shorter evicted other tiles:
+	// what lies past a tile's end then differed, and the engine draws one
+	// texel past a tile in places, so the frames did (test-sw's 301st)
+	while ((pic = kmalloc(cachesize + 15)) == NULL)
+	{
+		cachesize -= 65536L;
+		if (cachesize < 65536) return(-1);
+	}
+	initcache(pic, cachesize + 15);
+#else
 	while ((pic = kmalloc(cachesize)) == NULL)
 	{
 		cachesize -= 65536L;
 		if (cachesize < 65536) return(-1);
 	}
 	initcache(pic, cachesize);
+#endif
 
 	for(i=0;i<MAXTILES;i++)
 	{
