@@ -37,27 +37,25 @@ SW_CC     := $(call lc32,-c 400000) -O $(IMG_G) -mfuse -fno-builtin -c -conformi
 SW_OBJS   := $(SW_ENG:%=.sw/%.c4o) $(SW_MACT:%=.sw/%.c4o) $(SW_GAME:%=.sw/%.c4o) $(SW_C4:%=.sw/%.c4o) \
              $(SW_AUD:%=.sw/%.c4o)
 sw-objs: $(SW_OBJS) $(SW_PLAT:%=.sw/plat/%.c4o)
-# the game's version.c, not JFBuild's of the same name (sw-layer.c has its
-# strings)
-.sw/version.c4o: $(SW)/src/version.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+# each list from its own directory: the game and JFBuild both have a
+# config.c and a version.c (JFBuild's are its editor's), and a pattern
+# rule would take whichever it met first
+$(SW_ENG:%=.sw/%.c4o): .sw/%.c4o: $(SW)/jfbuild/src/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
 	@mkdir -p .sw/plat
 	$(SW_CC) $< $@ > /dev/null
-.sw/%.c4o: $(SW)/jfbuild/src/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+$(SW_MACT:%=.sw/%.c4o): .sw/%.c4o: $(SW)/jfmact/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
 	@mkdir -p .sw/plat
 	$(SW_CC) $< $@ > /dev/null
-.sw/%.c4o: $(SW)/jfmact/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+$(SW_GAME:%=.sw/%.c4o): .sw/%.c4o: $(SW)/src/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
 	@mkdir -p .sw/plat
 	$(SW_CC) $< $@ > /dev/null
-.sw/%.c4o: $(SW)/src/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+$(SW_C4:%=.sw/%.c4o): .sw/%.c4o: $(SW)/c4/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
 	@mkdir -p .sw/plat
 	$(SW_CC) $< $@ > /dev/null
-.sw/%.c4o: $(SW)/c4/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+$(SW_AUD:%=.sw/%.c4o): .sw/%.c4o: $(SW)/c4/audiolib/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
 	@mkdir -p .sw/plat
 	$(SW_CC) $< $@ > /dev/null
-.sw/%.c4o: $(SW)/c4/audiolib/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
-	@mkdir -p .sw/plat
-	$(SW_CC) $< $@ > /dev/null
-.sw/plat/%.c4o: $(SW)/c4/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+$(SW_PLAT:%=.sw/plat/%.c4o): .sw/plat/%.c4o: $(SW)/c4/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
 	@mkdir -p .sw/plat
 	$(SW_CC) $< $@ > /dev/null
 PHONY += sw-objs
