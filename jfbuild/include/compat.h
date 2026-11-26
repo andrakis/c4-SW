@@ -8,7 +8,10 @@
 #ifndef __compat_h__
 #define __compat_h__
 
-#if defined(__cplusplus)
+#if defined(C4SW)
+// c4lc (c4's games/sw/README.c4.md): C89 with C99's comments, mixed
+// declarations and long long, and no __STDC_VERSION__ to say so
+#elif defined(__cplusplus)
 # if (__cplusplus < 199711L)
 #  error Requires a C++98 compiler
 # endif
@@ -100,7 +103,25 @@ typedef unsigned __int64 uint64_t;
 # define NULL ((void *)0)
 #endif
 
-#if defined(__linux) || defined(__HAIKU__)
+#if defined(C4SW) && !defined(C4SW_HOST)
+// what C4IX's libc does not name: it has no symbolic links, and its words
+// are all 32 bits (c4's games/sw/README.c4.md)
+typedef int ptrdiff_t;
+# ifndef S_IFLNK
+#  define S_IFLNK 40960
+# endif
+# ifndef S_IRWXU
+#  define S_IRWXU 448
+# endif
+#endif
+
+#if defined(C4SW)
+// c4's machine is little-endian
+# define B_LITTLE_ENDIAN 1
+# define B_BIG_ENDIAN    0
+# define B_ENDIAN_C_INLINE 1
+
+#elif defined(__linux) || defined(__HAIKU__)
 # include <endian.h>
 # if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define B_LITTLE_ENDIAN 1

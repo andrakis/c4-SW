@@ -349,9 +349,22 @@ typedef struct {
 #else
 	DIR *dir;
 #endif
+#ifdef C4SW
+	char path[BMAX_PATH];	// the directory's, for stat: C4IX has no fstatat
+#endif
 	struct Bdirent info;
 	int status;
 } BDIR_real;
+
+#ifdef C4SW
+// fstatat, by the directory's path
+static int c4_dirstat(BDIR_real *dirr, const char *name, struct stat *st)
+{
+	char p[BMAX_PATH];
+	snprintf(p, sizeof(p), "%s/%s", dirr->path, name);
+	return stat(p, st);
+}
+#endif
 
 BDIR* Bopendir(const char *name)
 {
@@ -396,6 +409,9 @@ BDIR* Bopendir(const char *name)
 		free(dirr);
 		return NULL;
 	}
+#ifdef C4SW
+	strncpy(dirr->path, name, BMAX_PATH - 1);
+#endif
 #endif
 
 	dirr->status = 0;
@@ -454,7 +470,11 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	dirr->info.size = 0;
 	dirr->info.mtime = 0;
 
+#ifdef C4SW
+	if (!c4_dirstat(dirr, de->d_name, &st)) {
+#else
 	if (!fstatat(dirfd(dirr->dir), de->d_name, &st, 0)) {
+#endif
 		dirr->info.mode = st.st_mode;
 		dirr->info.size = st.st_size;
  		dirr->info.mtime = st.st_mtime;

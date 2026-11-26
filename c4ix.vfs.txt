@@ -1,0 +1,10 @@
+# Shadow Warrior (games/sw): the game and 3D Realms' shareware episode;
+# and the full game from the person's own SW.GRP, which the page's
+# Uploads put in /home/sw or /home (sw -home)
+#@app Games|Shadow Warrior|sw
+#@app Games|Shadow Warrior (your files)|sw -home
+sw/:
+	sw.c4r: c4ix-sw.c4r
+	SWSW.GRP
+	LICENSE.TXT: sw-license.txt
+	BUILDLIC.TXT: sw-buildlic.txt

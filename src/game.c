@@ -91,6 +91,9 @@ Things required to make savegames work:
 
 #include "startwin.h"
 #include "version.h"
+#ifdef C4SW
+#include "sw-plat.h"
+#endif
 
 #if DEBUG
 #define BETA 0
@@ -1574,6 +1577,9 @@ NewLevel(VOID)
         FX_SetVolume(0); // Shut the hell up while game is loading!
         InitLevel();
         InitRunLevel();
+#ifdef C4SW
+        sw_sum_level();
+#endif
 
         DemoInitOnce = FALSE;
         if (DemoMode)
@@ -3116,6 +3122,9 @@ VOID
 RunLevel(VOID)
     {
     InitRunLevel();
+#ifdef C4SW
+    sw_sum_level();     // a test's script starts with the level
+#endif
 
     FX_SetVolume(gs.SoundVolume);
     SetSongVolume(gs.MusicVolume);
@@ -3417,7 +3426,13 @@ int app_main(int argc, char const * const argv[])
     // creating a 'user_profiles_disabled' file in the current working
     // directory where the game was launched makes the installation
     // "portable" by writing into the working directory
+#ifdef C4SW
+    // c4: the settings and saved games where the game is, as Duke Nukem
+    // 3D's port keeps them: C4IX has no profile folder of the person's
+    if (1) {
+#else
     if (access("user_profiles_disabled", F_OK) == 0) {
+#endif
         char cwd[BMAX_PATH+1];
         if (getcwd(cwd, sizeof(cwd))) {
             addsearchpath(cwd);
@@ -3518,8 +3533,20 @@ int app_main(int argc, char const * const argv[])
         strncpy(grpfile, getenv("SWGRP"), BMAX_PATH);
     }
 
+#ifdef C4SW
+    {
+        // c4: the GRP is sw-sum.c's to find, SWSW.GRP or the person's own
+        // (-home), and known by its size alone: a CRC of its 26 to 47 MB
+        // takes as long as a level's start (c4's games/sw/README.c4.md)
+        char *g = sw_find_grp();
+        if (!g) exit(1);
+        strncpy(grpfile, g, BMAX_PATH);
+        gamegrp = IdentifyGroupBySize(grpfile);
+    }
+#else
     ScanGroups();
     gamegrp = IdentifyGroup(grpfile);
+#endif
 
     if (netparam) { // -net parameter on command line.
         netsuccess = initmultiplayersparms(endnetparam - netparam, &argv[netparam]);

@@ -60,6 +60,9 @@ static unsigned short SSWAPIL (unsigned short a) { return((a>>8)+(a<<8)); }
 #if !defined(_WIN32) && !defined(__DOS__)
 #include <unistd.h>
 #include <dirent.h>
+#if defined(C4SW) && !defined(S_IFLNK)
+#define S_IFLNK 40960	// C4IX has no symbolic links, and no name for them
+#endif
 typedef long long __int64;
 static inline int _lrotl (int i, int sh)
 	{ return((i>>(-sh))|(i<<sh)); }
@@ -3016,7 +3019,13 @@ int kzfindfile (char *filnam)
 			if ((findata = readdir(hfind)) == NULL)
 				{ closedir(hfind); hfind = NULL; if (!kzhashbuf) return 0; srchstat = kzlastfnam; break; }
 			i = wildstpathleng;
+#ifdef C4SW
+			// C4IX's libc has no fstatat: the path, then stat
+			strcpy(&filnam[i],findata->d_name);
+			if (stat(filnam, &st)) continue;
+#else
 			if (fstatat(dirfd(hfind), findata->d_name, &st, 0)) continue;
+#endif
 			if (st.st_mode & S_IFDIR)
 				{ if (findata->d_name[0] == '.' && !findata->d_name[1]) continue; } //skip .
 			else if ((st.st_mode & S_IFREG) || (st.st_mode & S_IFLNK))

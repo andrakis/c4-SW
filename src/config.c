@@ -40,6 +40,9 @@ Prepared for public release: 03/28/2005 - Charlie Wiederhold, 3D Realms
 #include "fx_man.h"
 #include "sounds.h"
 #include "config.h"
+#ifdef C4SW
+#include "sw-plat.h"
+#endif
 #include "common.h"
 
 // we load this in to get default button and key assignments
@@ -90,8 +93,13 @@ int32 JoystickAnalogSaturate[MAXJOYAXES];
 
 int32 ScreenMode = 1;
 int32 ScreenDisplay = 0;
+#ifdef C4SW
+int32 ScreenWidth = 320;    // c4: as the DOS game ran; Screen Setup has the rest
+int32 ScreenHeight = 200;
+#else
 int32 ScreenWidth = 640;
 int32 ScreenHeight = 480;
+#endif
 int32 ScreenBPP = 8;
 int32 ForceSetup = 1;
 
@@ -206,8 +214,13 @@ void CONFIG_SetDefaults( void )
 
    ScreenMode = 1;
    ScreenDisplay = 0;
+#ifdef C4SW
+   ScreenWidth = 320;
+   ScreenHeight = 200;
+#else
    ScreenWidth = 640;
    ScreenHeight = 480;
+#endif
    ScreenBPP = 8;
    FXDevice = 0;
    MusicDevice = 0;
@@ -578,7 +591,12 @@ int32 CONFIG_ReadSetup( void )
    CONTROL_ClearAssignments();
    CONFIG_SetDefaults();
 
+#ifdef C4SW
+   // c4: a test (-sum) plays from the defaults, whatever sw.cfg says
+   if (!sw_testing && SafeFileExists(setupfilename))
+#else
    if (SafeFileExists(setupfilename))
+#endif
       scripthandle = SCRIPT_Load(setupfilename);
 
    if (scripthandle < 0) return -1;
@@ -657,6 +675,10 @@ void CONFIG_WriteSetup( void )
    {
    int32 dummy;
    char buf[80];
+
+#ifdef C4SW
+   if (sw_testing) return;  // c4: and leaves it as it was
+#endif
 
    if (scripthandle < 0)
 	   scripthandle = SCRIPT_Init(setupfilename);

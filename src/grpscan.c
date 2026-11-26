@@ -254,6 +254,34 @@ struct grpfile const * IdentifyGroup(const char *grpfilename)
     return gamegrp;
 }
 
+#ifdef C4SW
+// c4: the one GRP named, known by its size among grpfiles[] (each
+// version's size is its own, but for the Mac's, which come after), with
+// no CRC: reading all of it to sum it costs c4's machine many seconds
+struct grpfile const * IdentifyGroupBySize(const char *grpfilename)
+{
+    struct Bstat st;
+    struct grpfile *grp;
+    int i;
+
+    if (Bstat(grpfilename, &st)) return NULL;
+    for (i = 0; grpfiles[i].name; i++) {
+        if (grpfiles[i].size == (int)st.st_size) break;
+    }
+    if (!grpfiles[i].name) return NULL;
+    grp = (struct grpfile *)calloc(1, sizeof(struct grpfile));
+    if (!grp) return NULL;
+    grp->name = strdup(grpfilename);
+    grp->crcval = grpfiles[i].crcval;
+    grp->size = grpfiles[i].size;
+    grp->ref = &grpfiles[i];
+    grp->game = grp->ref->game;
+    grp->next = foundgrps;
+    foundgrps = grp;
+    return grp;
+}
+#endif
+
 struct grpfile const * GroupsFound(void)
 {
     return foundgrps;

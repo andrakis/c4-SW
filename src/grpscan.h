@@ -51,6 +51,9 @@ enum {
 
 int ScanGroups(void);
 struct grpfile const * IdentifyGroup(const char *grpfilename);
+#ifdef C4SW
+struct grpfile const * IdentifyGroupBySize(const char *grpfilename);
+#endif
 struct grpfile const * GroupsFound(void);
 void FreeGroups(void);
 int ImportGroupsFromPath(const char *path, struct importgroupsmeta *cbs);
