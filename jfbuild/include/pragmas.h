@@ -3635,25 +3635,25 @@ static __inline void swapchar2(void *a, void *b, int s)
 // argument is used once, as by the function it names.
 #include "sw-math.h"
 #define C4_WITHIN(a, n) ((a) >= -(n) && (a) <= (n))
-static inline int mulscale(int a, int b, int s)
+static inline int mulscale_c(int a, int b, int s)
 {
 	if (C4_WITHIN(a, 46340) && C4_WITHIN(b, 46340) && s < 32) return (a*b)>>s;
 	return c4_mulscale(a, b, s);
 }
-static inline int dmulscale(int a, int b, int c, int d, int s)
+static inline int dmulscale_c(int a, int b, int c, int d, int s)
 {
 	if (C4_WITHIN(a, 32767) && C4_WITHIN(b, 32767) && C4_WITHIN(c, 32767) && C4_WITHIN(d, 32767) && s < 32)
 		return (a*b + c*d)>>s;
 	return c4_dmulscale(a, b, c, d, s);
 }
-static inline int tmulscale(int a, int b, int c, int d, int e, int f, int s)
+static inline int tmulscale_c(int a, int b, int c, int d, int e, int f, int s)
 {
 	if (C4_WITHIN(a, 16383) && C4_WITHIN(b, 16383) && C4_WITHIN(c, 16383) && C4_WITHIN(d, 16383) &&
 	    C4_WITHIN(e, 16383) && C4_WITHIN(f, 16383) && s < 32)
 		return (a*b + c*d + e*f)>>s;
 	return c4_tmulscale(a, b, c, d, e, f, s);
 }
-static inline int divscale(int a, int b, int s)
+static inline int divscale_c(int a, int b, int s)
 {
 	int done, r;
 	if (s < 31 && C4_WITHIN(a, 0x7fffffff >> s) && b != -1) return (int)((unsigned int)a << s) / b;
@@ -3661,7 +3661,7 @@ static inline int divscale(int a, int b, int s)
 	if (done) return r;
 	return (int)(((int64_t)a << s) / b);
 }
-static inline int scale(int a, int b, int c)
+static inline int scale_c(int a, int b, int c)
 {
 	int done, r;
 	if (C4_WITHIN(a, 46340) && C4_WITHIN(b, 46340) && c != -1) return (a*b)/c;
@@ -3669,6 +3669,16 @@ static inline int scale(int a, int b, int c)
 	if (done) return r;
 	return (int)(((int64_t)a * b) / c);
 }
+// and by the machine, where it has Shadow Warrior's accelerators (c4/accel.mjs:
+// one instruction, any operands); until the game has asked (accel_sw -1),
+// and elsewhere, the C. Each argument is used once on either side.
+#include "c4accel.h"
+#define mulscale(a,b,s) (accel_sw > 0 ? sw_mulscale((a),(b),(s)) : mulscale_c((a),(b),(s)))
+#define dmulscale(a,b,c,d,s) (accel_sw > 0 ? sw_dmulscale((a),(b),(c),(d),(s)) : dmulscale_c((a),(b),(c),(d),(s)))
+#define tmulscale(a,b,c,d,e,f,s) (accel_sw > 0 ? sw_tmulscale((a),(b),(c),(d),(e),(f),(s)) : \
+	tmulscale_c((a),(b),(c),(d),(e),(f),(s)))
+#define divscale(a,b,s) (accel_sw > 0 ? sw_divscale((a),(b),(s)) : divscale_c((a),(b),(s)))
+#define scale(a,b,c) (accel_sw > 0 ? sw_scale((a),(b),(c)) : scale_c((a),(b),(c)))
 #define mulscale1(a,b) mulscale(a,b,1)
 #define mulscale2(a,b) mulscale(a,b,2)
 #define mulscale3(a,b) mulscale(a,b,3)

@@ -21,6 +21,24 @@ extern int asm1, asm2, asm4, fpuasm, globalx3, globaly3;
 extern intptr_t asm3;
 extern void *reciptable;
 
+#if defined(C4SW) && defined(__c4_inttypes__)
+// c4's port: these loops run by the host where the machine has Shadow
+// Warrior's accelerators (c4/accel.mjs, c4/c4accel.h): one instruction
+// each, the same pixels. The C stays for every other machine.
+#include "c4accel.h"
+#define SW_ACC (SW_ACCEL () > 0)
+#else
+#define SW_ACC 0
+#define sw_vline(a, b, c, d, e, f, g, h) 0
+#define sw_mvline(a, b, c, d, e, f, g, h) 0
+#define sw_tvline(a, b, c, d, e, f, g, h, i, j) 0
+#define sw_hline(a, b, c, d, e, f, g, h, i, j) 0
+#define sw_mhline(a, b, c, d, e, f, g, h, i, j) 0
+#define sw_thline(a, b, c, d, e, f, g, h, i, j, k, l) 0
+#define sw_sprv(o, a, b, c, d, e, f, g, h, i, j, k, l) 0
+#define sw_slope(a, b, c, d, e, f, g, h, i, j, k, l, m, n) 0
+#endif
+
 static int bpl, transmode = 0;
 static int glogx, glogy, gbxinc, gbyinc, gpinc;
 static unsigned char *gbuf, *gpal, *ghlinepal, *gtrans;
@@ -44,6 +62,7 @@ void hlineasm4(int cnt, int skiploadincs, int paloffs, unsigned int by, unsigned
 	palptr = &ghlinepal[paloffs];
 	pp = (unsigned char *)p;
 	if (!skiploadincs) { gbxinc = asm1; gbyinc = asm2; }
+	if (SW_ACC) { sw_hline(cnt, palptr, by, bx, gbuf, pp, glogx, glogy, gbxinc, gbyinc); return; }
 	for(;cnt>=0;cnt--)
 	{
 		*pp = palptr[gbuf[((bx>>(32-glogx))<<glogy)+(by>>(32-glogy))]];
@@ -70,6 +89,10 @@ void slopevlin(void *p, int i, void *slopaloffs, int cnt, int bx, int by)
 	bz = (int)asm3; bzinc = (asm1>>3);
 	slopalptr = (intptr_t *)slopaloffs;
 	pp = (unsigned char *)p;
+	if (SW_ACC) {
+		sw_slope(pp, slopalptr, cnt, bx, by, bz, bzinc, globalx3, globaly3, gbuf, glogx, glogy, gpinc, &reciptable);
+		return;
+	}
 	for(;cnt>0;cnt--)
 	{
 		i = krecip(bz>>6); bz += bzinc;
@@ -91,6 +114,7 @@ void vlineasm1(int vinc, void *paloffs, int cnt, unsigned int vplc, void *bufplc
 	gbuf = (unsigned char *)bufplc;
 	gpal = (unsigned char *)paloffs;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_vline(vinc, gpal, cnt, vplc, gbuf, pp, glogy, bpl); return; }
 	for(;cnt>=0;cnt--)
 	{
 		*pp = gpal[gbuf[vplc>>glogy]];
@@ -107,6 +131,7 @@ void mvlineasm1(int vinc, void *paloffs, int cnt, unsigned int vplc, void *bufpl
 	gbuf = (unsigned char *)bufplc;
 	gpal = (unsigned char *)paloffs;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_mvline(vinc, gpal, cnt, vplc, gbuf, pp, glogy, bpl); return; }
 	for(;cnt>=0;cnt--)
 	{
 		ch = gbuf[vplc>>glogy]; if (ch != 255) *pp = gpal[ch];
@@ -123,6 +148,7 @@ void tvlineasm1(int vinc, void *paloffs, int cnt, unsigned int vplc, void *bufpl
 	gbuf = (unsigned char *)bufplc;
 	gpal = (unsigned char *)paloffs;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_tvline(vinc, gpal, cnt, vplc, gbuf, pp, glogy, bpl, gtrans, transmode); return; }
 	if (transmode)
 	{
 		for(;cnt>=0;cnt--)
@@ -155,6 +181,7 @@ void mhline(void *bufplc, unsigned int bx, int cntup16, int junk, unsigned int b
 	gbuf = (unsigned char *)bufplc;
 	gpal = (unsigned char *)asm3;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_mhline(gbuf, bx, cntup16 >> 16, by, pp, glogx, glogy, gpal, asm1, asm2); return; }
 	for(cntup16>>=16;cntup16>0;cntup16--)
 	{
 		ch = gbuf[((bx>>(32-glogx))<<glogy)+(by>>(32-glogy))];
@@ -174,6 +201,7 @@ void thline(void *bufplc, unsigned int bx, int cntup16, int junk, unsigned int b
 	gbuf = (unsigned char *)bufplc;
 	gpal = (unsigned char *)asm3;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_thline(gbuf, bx, cntup16 >> 16, by, pp, glogx, glogy, gpal, asm1, asm2, gtrans, transmode); return; }
 	if (transmode)
 	{
 		for(cntup16>>=16;cntup16>0;cntup16--)
@@ -213,6 +241,7 @@ void spritevline(int bx, int by, int cnt, void *bufplc, void *p)
 
 	gbuf = (unsigned char *)bufplc;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_sprv(SA_SPRV, bx, by, cnt, gbuf, pp, gpal, gbxinc, gbyinc, glogy, bpl, gtrans, transmode); return; }
 	for(;cnt>1;cnt--)
 	{
 		*pp = gpal[gbuf[(bx>>16)*glogy+(by>>16)]];
@@ -236,6 +265,7 @@ void mspritevline(int bx, int by, int cnt, void *bufplc, void *p)
 
 	gbuf = (unsigned char *)bufplc;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_sprv(SA_MSPRV, bx, by, cnt, gbuf, pp, gpal, gbxinc, gbyinc, glogy, bpl, gtrans, transmode); return; }
 	for(;cnt>1;cnt--)
 	{
 		ch = gbuf[(bx>>16)*glogy+(by>>16)];
@@ -259,6 +289,7 @@ void tspritevline(int bx, int by, int cnt, void *bufplc, void *p)
 
 	gbuf = (unsigned char *)bufplc;
 	pp = (unsigned char *)p;
+	if (SW_ACC) { sw_sprv(SA_TSPRV, bx, by, cnt, gbuf, pp, gpal, gbxinc, gbyinc, glogy, bpl, gtrans, transmode); return; }
 	if (transmode)
 	{
 		for(;cnt>1;cnt--)

@@ -12,6 +12,12 @@
 // these to it, frame for frame.
 #include <stdint.h>
 #include "sw-math.h"
+#include "c4accel.h"
+
+// the first of Shadow Warrior's accelerators' numbers (c4/accel.mjs), 0
+// for none, -1 until asked (SW_ACCEL)
+int32_t accel_sw = -1;
+int32_t accel_sw_base (void) { return accel_sw = accel_find ("sw"); }
 
 /* x >> s, logically, for 0 < s < 32 */
 #define C4_LSR(x, s) ((uint32_t)(x) >> (s))

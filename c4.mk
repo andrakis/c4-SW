@@ -90,7 +90,9 @@ PHONY += sw-data
 # that moves only as the game runs, by gcc's build and by c4lc's -- on the
 # bare machine, under C4DOS and inside C4IX -- must show the same frames,
 # to the checksum of every pixel and the palette. With the sound off
-# (-nosound): gcc's build has no card. Then, inside C4IX, the screen size
+# (-nosound): gcc's build has no card. The bare machine's and C4DOS's with
+# the accelerators, which must draw what the loops do (and acceltest
+# holds each to its loop first). Then, inside C4IX, the screen size
 # changed as a player changes it, in the game's menu (Options, Screen
 # Menu, Resolution, Apply Settings: -menu, from 320x200 to 400x300), and
 # played on so; then quit from the game's menu (Quit, Y), which must end
@@ -103,8 +105,20 @@ PHONY += sw-data
 SW_RUN := -level1 -s2 -nosound -sum 50 -frames 600 -script
 SW_RES := -level1 -s2 -nosound -sum 20 -frames 500 -menu
 SW_GM  := -level1 -s2 -sum 50 -frames 600 -script
-test-sw: sw-data sw-host c4bb-images test-libc-bare
+# c4's port: Shadow Warrior's accelerators (c4/accel.mjs) against their
+# loops, on the bare machine, with libjs's own (cli.js loads them,
+# docs/accel.md). In a directory of its own: c4-images.sh links
+# .sw/*.c4o into the game.
+.sw/test/acceltest.c4o: $(SW)/c4/acceltest.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+	@mkdir -p .sw/test
+	$(SW_CC) $< $@ > /dev/null
+.sw/test/acceltest.c4r: .sw/test/acceltest.c4o libc-bare-objs
+	./c4rlink32 $< .libc-bare/libc-*.c4o -o $@ > /dev/null
+test-sw: sw-data sw-host c4bb-images test-libc-bare .sw/test/acceltest.c4r
 	@rm -rf .sw_t && mkdir -p .sw_t
+	@timeout 600 node libjs/cli.js -m 64 .sw/test/acceltest.c4r > .sw_t/accel.txt 2>&1; cat .sw_t/accel.txt
+	@grep -q "^accel: Shadow Warrior's, [0-9]* cases, each as its loop has it" .sw_t/accel.txt \
+	   || { echo "test-sw: the accelerators do not draw as their loops"; exit 1; }
 	@cp $(SW_DATA)/SWSW.GRP .sw_t/
 	@cd .sw_t && ../sw-host $(SW_RUN) 2>/dev/null | grep '^sum\|^timedemo' > host.txt
 	@cd .sw_t && ../sw-host $(SW_RES) 2>/dev/null | grep '^sum\|^timedemo' > res.txt
