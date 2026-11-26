@@ -67,3 +67,47 @@ sw-host: $(SW_HOST_SRCS) $(SW_HDRS)
 	    -DC4SW -DC4SW_HOST -Drand=sw_rand -Dsrand=sw_srand -I$(SW)/c4 -I$(SW)/src -I$(SW)/jfbuild/include \
 	    -I$(SW)/jfbuild/src -I$(SW)/jfmact -I$(SW)/jfaudiolib/include -Ilibjs/guest \
 	    -o $@ $(SW_HOST_SRCS) -lm
+
+# The data, which is not in the repository: 3D Realms' shareware package
+# of v1.2 as it was distributed, checked by its SHA-256, and what the game
+# reads out of it (tools/swdata.py): the episode's SW.GRP as SWSW.GRP, so
+# that the person's own never hides it, SW.RTS, and the package's
+# LICENSE.TXT (data/README.md). games/fetch.sh takes the package from
+# $SW_ZIP when that names a copy, or else from the mirrors in data/MIRRORS.
+SW_DATA := $(SW)/data
+sw-data: $(SW_DATA)/SWSW.GRP
+$(SW_DATA)/3dsw12.zip:
+	@sh games/fetch.sh $@ 6e41b3769d0373fc160c2113469c6f8bc2932dc1a77b69c81c1bd9644a189a8f SW_ZIP $$(cat $(SW_DATA)/MIRRORS 2>/dev/null)
+$(SW_DATA)/SWSW.GRP: $(SW_DATA)/3dsw12.zip $(SW)/tools/swdata.py
+	@python3 -I $(SW)/tools/swdata.py $< $(SW_DATA)
+PHONY += sw-data
+
+# test-sw: the first level (-level1, skill 2) played from a fixed script
+# of keys, mouse moves and a mouse button (sw-sum.c, -script), on a clock
+# that moves only as the game runs, by gcc's build and by c4lc's -- on the
+# bare machine, under C4DOS and inside C4IX -- must show the same frames,
+# to the checksum of every pixel and the palette. With the sound off
+# (-nosound): gcc's build has no card, and what plays does not change
+# what is drawn.
+SW_RUN := -level1 -s2 -nosound -sum 50 -frames 600 -script
+test-sw: sw-data sw-host c4bb-images test-libc-bare
+	@rm -rf .sw_t && mkdir -p .sw_t
+	@cp $(SW_DATA)/SWSW.GRP .sw_t/
+	@cd .sw_t && ../sw-host $(SW_RUN) 2>/dev/null | grep '^sum\|^timedemo' > host.txt
+	@tail -1 .sw_t/host.txt
+	@cd src/c4bb/images/games && { timeout 1800 node ../../../../libjs/cli.js -m 128 -d . sw.c4r $(SW_RUN) \
+	     > ../../../../.sw_t/bare.out 2>/dev/null & \
+	   printf 'sw $(SW_RUN)\nver\n' | timeout 1800 node ../../../../libjs/cli.js -m 128 -d . ../c4dos32.c4r \
+	     > ../../../../.sw_t/dos.out 2>/dev/null; wait; }
+	@printf 'sw $(SW_RUN)\nexit\n' | timeout 1800 node libjs/cli.js -m 128 -d src/c4bb/images/disk src/c4bb/images/c4ix32.c4r \
+	   2>/dev/null > .sw_t/c4ix.out
+	@for w in bare dos c4ix; do grep '^sum\|^timedemo' .sw_t/$$w.out | cmp -s .sw_t/host.txt - \
+	   || { echo "test-sw: $$w's frames differ:"; tail -5 .sw_t/$$w.out; exit 1; }; done
+	@grep -A1 '^timedemo' .sw_t/dos.out | grep -Eq '^A(:\\)?>C4DOS version' \
+	   || { echo "test-sw: C4DOS did not come back to its prompt:"; tail -5 .sw_t/dos.out; exit 1; }
+	@rm -rf .sw_t
+	@echo "test-sw: OK"
+PHONY += test-sw
+
+GAME_OBJS  += sw-objs
+GAME_TESTS += test-sw
