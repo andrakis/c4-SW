@@ -7,7 +7,7 @@
 // that C does: the same pixels in the same order, 32-bit arithmetic
 // wrapping, shifts modulo 32 as c4's SHL and LSR take them, and floats as
 // c4's FPU makes them. As Duke Nukem 3D's (games/duke3d/c4/accel.mjs).
-export default function sw({ reader, writer, reader32, args, fval, fbits }) {
+export default function sw({ reader, writer, reader32, probe, args, fval, fbits }) {
   // SA_VLINE, SA_MVLINE (vinc, pal, cnt, vplc, buf, p, logy, bpl):
   // vlineasm1, mvlineasm1: for (; cnt >= 0; cnt--) { *p = pal[buf[vplc >>
   // logy]]; p += bpl; vplc += vinc; }, the masked one leaving texel 255 out
@@ -21,6 +21,25 @@ export default function sw({ reader, writer, reader32, args, fval, fbits }) {
     return 0;
   }
 
+  // The translucent loops blend what is on the screen: drawn twice, a
+  // pixel would be blended twice. So they work out every pixel first,
+  // reading all they read and making sure (probe) that every page they will
+  // write is there, and only then write: a fault comes before the first
+  // write, and the instruction runs again as if it had not begun (Duke's).
+  function later(m) {
+    const list = [];
+    let page = -1;
+    return {
+      put(a, b) {
+        if ((a >>> 12) !== page) { probe(m, a, 1, true); page = a >>> 12; }
+        list.push(a, b);
+      },
+      commit() {
+        const wr = writer(m);
+        for (let i = 0; i < list.length; i += 2) wr(list[i], list[i + 1]);
+      },
+    };
+  }
   // the translucent blend: transmode 1 is trans[*p + (c << 8)], 0 is
   // trans[(*p << 8) + c], c the texel's colour
   const blend = (tr, d, c, trans, mode) =>
@@ -30,11 +49,12 @@ export default function sw({ reader, writer, reader32, args, fval, fbits }) {
   // tvlineasm1
   function tvline(m) {
     let [inc, pal, n, v, buf, p, logy, bpl, trans, mode] = args(m, 10);
-    const rt = reader(m), rp = reader(m), rd = reader(m), rtr = reader(m), wr = writer(m);
+    const rt = reader(m), rp = reader(m), rd = reader(m), rtr = reader(m), out = later(m);
     for (; n >= 0; n--, p = (p + bpl) | 0, v = (v + inc) | 0) {
       const c = rt((buf + (v >>> logy)) | 0);
-      if (c !== 255) wr(p, blend(rtr, rd(p), rp((pal + c) | 0), trans, mode));
+      if (c !== 255) out.put(p, blend(rtr, rd(p), rp((pal + c) | 0), trans, mode));
     }
+    out.commit();
     return 0;
   }
 
@@ -56,12 +76,14 @@ export default function sw({ reader, writer, reader32, args, fval, fbits }) {
   function mhline(m, trans_) {
     let [buf, bx, n, by, p, logx, logy, pal, ax, ay, trans, mode] = args(m, 12);
     const sx = (32 - logx) & 31, sy = (32 - logy) & 31, ly = logy & 31;
-    const rt = reader(m), rp = reader(m), rd = reader(m), rtr = reader(m), wr = writer(m);
+    const rt = reader(m), rp = reader(m), rd = reader(m), rtr = reader(m), wr = writer(m), out = later(m);
     for (; n > 0; n--, p = (p + 1) | 0, bx = (bx + ax) | 0, by = (by + ay) | 0) {
       const c = rt((buf + (((bx >>> sx) << ly) + (by >>> sy))) | 0);
       if (c === 255) continue;
-      wr(p, trans_ ? blend(rtr, rd(p), rp((pal + c) | 0), trans, mode) : rp((pal + c) | 0));
+      if (trans_) out.put(p, blend(rtr, rd(p), rp((pal + c) | 0), trans, mode));
+      else wr(p, rp((pal + c) | 0));
     }
+    out.commit();
     return 0;
   }
 
@@ -71,12 +93,15 @@ export default function sw({ reader, writer, reader32, args, fval, fbits }) {
   // bx += bxinc; by += byinc; p += bpl; }
   function sprv(m, kind) {
     let [bx, by, n, buf, p, pal, bxinc, byinc, ysiz, bpl, trans, mode] = args(m, 12);
-    const rt = reader(m), rp = reader(m), rd = reader(m), rtr = reader(m), wr = writer(m);
+    const rt = reader(m), rp = reader(m), rd = reader(m), rtr = reader(m), wr = writer(m), out = later(m);
     for (; n > 1; n--, bx = (bx + bxinc) | 0, by = (by + byinc) | 0, p = (p + bpl) | 0) {
       const c = rt((buf + Math.imul(bx >> 16, ysiz) + (by >> 16)) | 0);
       if (kind === 0) wr(p, rp((pal + c) | 0));
-      else if (c !== 255) wr(p, kind === 1 ? rp((pal + c) | 0) : blend(rtr, rd(p), rp((pal + c) | 0), trans, mode));
+      else if (c === 255) continue;
+      else if (kind === 1) wr(p, rp((pal + c) | 0));
+      else out.put(p, blend(rtr, rd(p), rp((pal + c) | 0), trans, mode));
     }
+    out.commit();
     return 0;
   }
 
@@ -145,11 +170,13 @@ export default function sw({ reader, writer, reader32, args, fval, fbits }) {
   // SA_SCALE (a, b, c), c not 0: (int32_t)((int64_t)a * b / c), toward 0
   function scale(m) {
     const [a, b, c] = args(m, 3);
+    if (c === 0) return 0;
     return Number(BigInt.asIntN(32, (BigInt(a) * BigInt(b)) / BigInt(c)));
   }
   // SA_DIVSCALE (a, b, s), b not 0, 0 <= s <= 32: (int32_t)(((int64_t)a << s) / b)
   function divscale(m) {
     const [a, b, s] = args(m, 3);
+    if (b === 0) return 0;
     return Number(BigInt.asIntN(32, BigInt.asIntN(64, BigInt(a) << BigInt(s)) / BigInt(b)));
   }
 
