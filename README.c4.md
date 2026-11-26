@@ -59,6 +59,17 @@ Resolution: Left and Right choose, Apply Settings takes it. The sizes are
 the display scales it to fill the screen; the status bar and the menus
 are drawn bigger. The time a frame takes grows with its pixels.
 
+## How fast
+
+On node's bare machine, test-sw's script on the first level at 320x200
+(c4's `node tools/framebench.mjs sw`), in VM instructions a frame, median
+/ mean / 99th percentile: 7.41 / 7.54 / 12.97 M in the first build; 6.46 /
+6.54 / 12.01 M with JFBuild's 64-bit helpers in 32-bit operations
+(`c4/sw-math.c`); 2.73 / 2.81 / 4.60 M with the accelerators
+(`c4/accel.mjs`): at the page's 100 MHz, 13.3 frames a second on average
+in the first build and 35.6 now. c4pc runs the same accelerators in C
+(c4's `src/c4pc/games/sw.c`). c4's `docs/sw-port.md` has the profiles.
+
 ## What is c4's here
 
 Everything in `c4/`, and a few lines in jfsw's and JFBuild's own files,
@@ -85,6 +96,17 @@ each under `#ifdef C4SW`:
   `c4/sw-nosnd.c` is the silent one, for gcc's build.
 - `c4/sw-sum.c`: the clock, one `rand` for every build, the GRP, the
   test's input and every frame checksummed.
+- `c4/sw-math.c`: JFBuild's 64-bit helpers (`pragmas.h`'s `mulscale`,
+  `divscale`, `scale`, `dmulscale`, `tmulscale`) from 32-bit operations,
+  where the products do not fit in 32 bits, with the int64_t code's values:
+  c4's machine has no 64-bit arithmetic (from Duke Nukem 3D's port).
+  `pragmas.h` tries 32 bits first, and its numbered forms are macros, under
+  c4lc only; gcc's build keeps the int64_t code, which the test holds
+  c4lc's frames to.
+- `c4/accel.mjs`, `c4/c4accel.h`, `c4/acceltest.c`: the accelerators,
+  JFBuild's loops (`a-c.c`) and its 64-bit helpers run by the page's
+  machine, one instruction each, the same pixels (c4's `docs/accel.md`);
+  `a-c.c` and `pragmas.h` call them where the machine has them.
 - `c4/inc/`: the headers C4IX's libc lacks (`stdint.h`, `stdbool.h`,
   `inttypes.h`), and DOS's for audiolib (`conio.h`, `dos.h`).
 - `c4.mk`, `c4-images.sh`, `c4ix.vfs.txt`, `tools/swdata.py`: c4's build,
