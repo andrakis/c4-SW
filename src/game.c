@@ -706,11 +706,16 @@ TerminateGame(VOID)
 
     uninitmultiplayers();
 
+#ifndef C4SW
+    // c4: a quit goes straight back to the desktop or the prompt, as Duke
+    // Nukem 3D's port does: the shareware's ordering screen (Sybex's)
+    // waited for a key in a loop that never slept
     if (CleanExit)
         {
         SybexScreen();
         //TenScreen();
         }
+#endif
 
     ////--->>>> sound stuff was there
     //uninitkeys();

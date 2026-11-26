@@ -201,13 +201,42 @@ static int steps[][5] = {
 	{ S_KEY,    410, 440, 17, 0 },
 	{ 0, 0, 0, 0, 0 }
 };
-// -menu: the screen size changed in the game, as a player does it; then
-// a walk, and a quit from the game, which must end the program. (The
-// lines are set once the game's menus have been played through.)
+// -menu: the screen size changed in the game, as a player does it: Esc,
+// Options (the main menu's fourth line), Screen Menu (its first),
+// Resolution (the screen menu's seventh line), one to the right twice
+// (320x200 to 400x300), Apply Settings (the next line), Enter; out again;
+// a walk at the new size; then a quit from the game's menu (Esc, Q, Enter, Y),
+// which must end the program
+//
+// Each key is held three frames, twelve apart. The menus look at the
+// arrows every 10 ticks of the 120 Hz clock (menus.c's REPEAT_DELAY),
+// about every third frame on a test's clock: held longer, one press
+// would move the cursor twice.
 static int menusteps[][5] = {
-	{ S_KEY,  20,  22, 27, 0 },	// esc: the menu
-	{ S_KEY,  30,  32, 27, 0 },	// esc: out
-	{ S_KEY,  40, 100, 38, 0 },	// up: walk
+	{ S_KEY,  20,  23, 27, 0 },	// esc: the menu
+	{ S_KEY,  32,  35, 40, 0 },	// down, down, down: options
+	{ S_KEY,  44,  47, 40, 0 },
+	{ S_KEY,  56,  59, 40, 0 },
+	{ S_KEY,  68,  71, 13, 0 },	// enter: options
+	{ S_KEY,  80,  83, 13, 0 },	// enter: the screen menu
+	{ S_KEY,  92,  95, 40, 0 },	// down six times: resolution
+	{ S_KEY, 104, 107, 40, 0 },
+	{ S_KEY, 116, 119, 40, 0 },
+	{ S_KEY, 128, 131, 40, 0 },
+	{ S_KEY, 140, 143, 40, 0 },
+	{ S_KEY, 152, 155, 40, 0 },
+	{ S_KEY, 164, 167, 39, 0 },	// right, right: 400x300
+	{ S_KEY, 176, 179, 39, 0 },
+	{ S_KEY, 188, 191, 40, 0 },	// down: apply settings
+	{ S_KEY, 200, 203, 13, 0 },	// enter: that size
+	{ S_KEY, 212, 215, 27, 0 },	// esc, esc, esc
+	{ S_KEY, 224, 227, 27, 0 },
+	{ S_KEY, 236, 239, 27, 0 },
+	{ S_KEY, 248, 308, 38, 0 },	// up: walk, at the new size
+	{ S_KEY, 320, 323, 27, 0 },	// esc: the menu
+	{ S_KEY, 332, 335, 81, 0 },	// q: to Quit
+	{ S_KEY, 344, 347, 13, 0 },	// enter: quit?
+	{ S_KEY, 356, 359, 89, 0 },	// y: yes
 	{ 0, 0, 0, 0, 0 }
 };
 static int level0 = -1;		// the frame the level was first drawn

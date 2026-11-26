@@ -37,6 +37,11 @@ SW_CC     := $(call lc32,-c 400000) -O $(IMG_G) -mfuse -fno-builtin -c -conformi
 SW_OBJS   := $(SW_ENG:%=.sw/%.c4o) $(SW_MACT:%=.sw/%.c4o) $(SW_GAME:%=.sw/%.c4o) $(SW_C4:%=.sw/%.c4o) \
              $(SW_AUD:%=.sw/%.c4o)
 sw-objs: $(SW_OBJS) $(SW_PLAT:%=.sw/plat/%.c4o)
+# the game's version.c, not JFBuild's of the same name (sw-layer.c has its
+# strings)
+.sw/version.c4o: $(SW)/src/version.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
+	@mkdir -p .sw/plat
+	$(SW_CC) $< $@ > /dev/null
 .sw/%.c4o: $(SW)/jfbuild/src/%.c $(SW_HDRS) $(C4LC_LISP) .img_g | $(LC32_BIN)
 	@mkdir -p .sw/plat
 	$(SW_CC) $< $@ > /dev/null
@@ -87,13 +92,18 @@ PHONY += sw-data
 # that moves only as the game runs, by gcc's build and by c4lc's -- on the
 # bare machine, under C4DOS and inside C4IX -- must show the same frames,
 # to the checksum of every pixel and the palette. With the sound off
-# (-nosound): gcc's build has no card, and what plays does not change
-# what is drawn.
+# (-nosound): gcc's build has no card. Then, inside C4IX, the screen size
+# changed as a player changes it, in the game's menu (Options, Screen
+# Menu, Resolution, Apply Settings: -menu, from 320x200 to 400x300), and
+# played on so; then quit from the game's menu (Quit, Y), which must end
+# it.
 SW_RUN := -level1 -s2 -nosound -sum 50 -frames 600 -script
+SW_RES := -level1 -s2 -nosound -sum 20 -frames 500 -menu
 test-sw: sw-data sw-host c4bb-images test-libc-bare
 	@rm -rf .sw_t && mkdir -p .sw_t
 	@cp $(SW_DATA)/SWSW.GRP .sw_t/
 	@cd .sw_t && ../sw-host $(SW_RUN) 2>/dev/null | grep '^sum\|^timedemo' > host.txt
+	@cd .sw_t && ../sw-host $(SW_RES) 2>/dev/null | grep '^sum\|^timedemo' > res.txt
 	@tail -1 .sw_t/host.txt
 	@cd src/c4bb/images/games && { timeout 1800 node ../../../../libjs/cli.js -m 128 -d . sw.c4r $(SW_RUN) \
 	     > ../../../../.sw_t/bare.out 2>/dev/null & \
@@ -101,8 +111,14 @@ test-sw: sw-data sw-host c4bb-images test-libc-bare
 	     > ../../../../.sw_t/dos.out 2>/dev/null; wait; }
 	@printf 'sw $(SW_RUN)\nexit\n' | timeout 1800 node libjs/cli.js -m 128 -d src/c4bb/images/disk src/c4bb/images/c4ix32.c4r \
 	   2>/dev/null > .sw_t/c4ix.out
+	@printf 'sw $(SW_RES)\nexit\n' | timeout 1800 node libjs/cli.js -m 128 -d src/c4bb/images/disk src/c4bb/images/c4ix32.c4r \
+	   2>/dev/null > .sw_t/res.out
 	@for w in bare dos c4ix; do grep '^sum\|^timedemo' .sw_t/$$w.out | cmp -s .sw_t/host.txt - \
 	   || { echo "test-sw: $$w's frames differ:"; tail -5 .sw_t/$$w.out; exit 1; }; done
+	@grep '^sum\|^timedemo' .sw_t/res.out | cmp -s .sw_t/res.txt - \
+	   || { echo "test-sw: with the screen size changed in the menu, the frames differ:"; tail -5 .sw_t/res.out; exit 1; }
+	@grep -q '^sw: quit from the game' .sw_t/res.out \
+	   || { echo "test-sw: the game's quit did not end it:"; tail -5 .sw_t/res.out; exit 1; }
 	@grep -A1 '^timedemo' .sw_t/dos.out | grep -Eq '^A(:\\)?>C4DOS version' \
 	   || { echo "test-sw: C4DOS did not come back to its prompt:"; tail -5 .sw_t/dos.out; exit 1; }
 	@rm -rf .sw_t
