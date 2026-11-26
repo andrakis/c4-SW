@@ -10,7 +10,10 @@ organization, only without charge, as long as no copyright information or
 trademark is added or removed and the game's files are included without
 modification. The registered game, and any modified version, may not be
 distributed: the full game is the person's own `SW.GRP`, which they add
-with the page's Uploads (README.c4.md).
+with the page's Uploads (README.c4.md). The licence names no web or FTP
+sites, as Duke Nukem 3D's later one does; c4's page is free, and its
+published site carries the episode, as it carries Duke's (c4's
+`libjs/pages.sh`).
 
 `tools/swdata.py` reads the game's files out of the package and puts them
 here, and the disks get them:
