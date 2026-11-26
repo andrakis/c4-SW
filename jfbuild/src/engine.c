@@ -8141,12 +8141,17 @@ int loadpics(char *filename, int askedsize)
 	// cachesize long wherever malloc's block starts. glibc's start on 16,
 	// c4's libcs' not, and a cache 16 bytes shorter evicted other tiles:
 	// what lies past a tile's end then differed, and the engine draws one
-	// texel past a tile in places, so the frames did (test-sw's 301st)
+	// texel past a tile in places, so the frames could
 	while ((pic = kmalloc(cachesize + 15)) == NULL)
 	{
 		cachesize -= 65536L;
 		if (cachesize < 65536) return(-1);
 	}
+	// and cleared: a tile's slot is rounded up to 16 bytes, and what the
+	// engine draws past a tile's end comes from there. glibc's fresh memory
+	// is zero; c4's malloc may hand back memory a file was read into, other
+	// on each machine (the 12 MB block fits where the 32 MB one did not)
+	memset(pic, 0, cachesize + 15);
 	initcache(pic, cachesize + 15);
 #else
 	while ((pic = kmalloc(cachesize)) == NULL)
