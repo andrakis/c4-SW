@@ -54,6 +54,9 @@ int main (int argc, char *argv[])
 	r = app_main (argc, (char const * const *)argv);
 	startwin_close ();
 	sw_quit ();
+	// exit, not return: C4IX's libc runs the atexit handlers (the test's
+	// last line, sw-sum.c's) and flushes stdout only in exit
+	exit (r);
 	return r;
 }
 
