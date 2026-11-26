@@ -21,7 +21,7 @@ SW_GAME   := actor ai anim border break bunny cache cheats colormap config conso
              ripper ripper2 rooms rotator rts save scrip2 sector serp setup skel skull slidor sounds spike \
              sprite sumo swconfig sync text track vator vis wallmove warp weapon zilla zombie saveable version
 # c4's alone: the platform layer, the clock and the test, the display, the card
-SW_C4     := sw-layer sw-sum sw-gui sw-snd
+SW_C4     := sw-layer sw-sum sw-gui sw-snd sw-math
 # audiolib's MIDI player and AdLib driver, for the music on the card's OPL
 SW_AUD    := midi al_midi gmtimbre ll_man usrhooks
 SW_PLAT   := sw-c4ix sw-bare

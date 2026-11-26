@@ -3624,6 +3624,180 @@ static __inline void swapchar2(void *a, void *b, int s)
 #define wo(x)	((int16_t)(x))		// word cast
 #define by(x)	((int8_t)(x))		// byte cast
 
+#if defined(C4SW) && defined(__c4_inttypes__)
+// c4's port, under c4lc: c4's machine has no 64-bit arithmetic, and each
+// operation on an int64_t is a call (a division a loop of them): in the
+// first build a quarter of a frame. Where the products fit in 32 bits these
+// work in 32; otherwise c4/sw-math.c's, from 32-bit operations. The same
+// values as the int64_t code, which gcc's build keeps (test-sw holds them
+// to it). And the numbered ones are macros: c4lc makes a static inline
+// function a call as any other, so mulscale16(a,b) was two calls. Each
+// argument is used once, as by the function it names.
+#include "sw-math.h"
+#define C4_WITHIN(a, n) ((a) >= -(n) && (a) <= (n))
+static inline int mulscale(int a, int b, int s)
+{
+	if (C4_WITHIN(a, 46340) && C4_WITHIN(b, 46340) && s < 32) return (a*b)>>s;
+	return c4_mulscale(a, b, s);
+}
+static inline int dmulscale(int a, int b, int c, int d, int s)
+{
+	if (C4_WITHIN(a, 32767) && C4_WITHIN(b, 32767) && C4_WITHIN(c, 32767) && C4_WITHIN(d, 32767) && s < 32)
+		return (a*b + c*d)>>s;
+	return c4_dmulscale(a, b, c, d, s);
+}
+static inline int tmulscale(int a, int b, int c, int d, int e, int f, int s)
+{
+	if (C4_WITHIN(a, 16383) && C4_WITHIN(b, 16383) && C4_WITHIN(c, 16383) && C4_WITHIN(d, 16383) &&
+	    C4_WITHIN(e, 16383) && C4_WITHIN(f, 16383) && s < 32)
+		return (a*b + c*d + e*f)>>s;
+	return c4_tmulscale(a, b, c, d, e, f, s);
+}
+static inline int divscale(int a, int b, int s)
+{
+	int done, r;
+	if (s < 31 && C4_WITHIN(a, 0x7fffffff >> s) && b != -1) return (int)((unsigned int)a << s) / b;
+	r = c4_divscale(a, b, s, &done);
+	if (done) return r;
+	return (int)(((int64_t)a << s) / b);
+}
+static inline int scale(int a, int b, int c)
+{
+	int done, r;
+	if (C4_WITHIN(a, 46340) && C4_WITHIN(b, 46340) && c != -1) return (a*b)/c;
+	r = c4_scale(a, b, c, &done);
+	if (done) return r;
+	return (int)(((int64_t)a * b) / c);
+}
+#define mulscale1(a,b) mulscale(a,b,1)
+#define mulscale2(a,b) mulscale(a,b,2)
+#define mulscale3(a,b) mulscale(a,b,3)
+#define mulscale4(a,b) mulscale(a,b,4)
+#define mulscale5(a,b) mulscale(a,b,5)
+#define mulscale6(a,b) mulscale(a,b,6)
+#define mulscale7(a,b) mulscale(a,b,7)
+#define mulscale8(a,b) mulscale(a,b,8)
+#define mulscale9(a,b) mulscale(a,b,9)
+#define mulscale10(a,b) mulscale(a,b,10)
+#define mulscale11(a,b) mulscale(a,b,11)
+#define mulscale12(a,b) mulscale(a,b,12)
+#define mulscale13(a,b) mulscale(a,b,13)
+#define mulscale14(a,b) mulscale(a,b,14)
+#define mulscale15(a,b) mulscale(a,b,15)
+#define mulscale16(a,b) mulscale(a,b,16)
+#define mulscale17(a,b) mulscale(a,b,17)
+#define mulscale18(a,b) mulscale(a,b,18)
+#define mulscale19(a,b) mulscale(a,b,19)
+#define mulscale20(a,b) mulscale(a,b,20)
+#define mulscale21(a,b) mulscale(a,b,21)
+#define mulscale22(a,b) mulscale(a,b,22)
+#define mulscale23(a,b) mulscale(a,b,23)
+#define mulscale24(a,b) mulscale(a,b,24)
+#define mulscale25(a,b) mulscale(a,b,25)
+#define mulscale26(a,b) mulscale(a,b,26)
+#define mulscale27(a,b) mulscale(a,b,27)
+#define mulscale28(a,b) mulscale(a,b,28)
+#define mulscale29(a,b) mulscale(a,b,29)
+#define mulscale30(a,b) mulscale(a,b,30)
+#define mulscale31(a,b) mulscale(a,b,31)
+#define mulscale32(a,b) mulscale(a,b,32)
+#define divscale1(a,b) divscale(a,b,1)
+#define divscale2(a,b) divscale(a,b,2)
+#define divscale3(a,b) divscale(a,b,3)
+#define divscale4(a,b) divscale(a,b,4)
+#define divscale5(a,b) divscale(a,b,5)
+#define divscale6(a,b) divscale(a,b,6)
+#define divscale7(a,b) divscale(a,b,7)
+#define divscale8(a,b) divscale(a,b,8)
+#define divscale9(a,b) divscale(a,b,9)
+#define divscale10(a,b) divscale(a,b,10)
+#define divscale11(a,b) divscale(a,b,11)
+#define divscale12(a,b) divscale(a,b,12)
+#define divscale13(a,b) divscale(a,b,13)
+#define divscale14(a,b) divscale(a,b,14)
+#define divscale15(a,b) divscale(a,b,15)
+#define divscale16(a,b) divscale(a,b,16)
+#define divscale17(a,b) divscale(a,b,17)
+#define divscale18(a,b) divscale(a,b,18)
+#define divscale19(a,b) divscale(a,b,19)
+#define divscale20(a,b) divscale(a,b,20)
+#define divscale21(a,b) divscale(a,b,21)
+#define divscale22(a,b) divscale(a,b,22)
+#define divscale23(a,b) divscale(a,b,23)
+#define divscale24(a,b) divscale(a,b,24)
+#define divscale25(a,b) divscale(a,b,25)
+#define divscale26(a,b) divscale(a,b,26)
+#define divscale27(a,b) divscale(a,b,27)
+#define divscale28(a,b) divscale(a,b,28)
+#define divscale29(a,b) divscale(a,b,29)
+#define divscale30(a,b) divscale(a,b,30)
+#define divscale31(a,b) divscale(a,b,31)
+#define divscale32(a,b) divscale(a,b,32)
+#define dmulscale1(a,b,c,d) dmulscale(a,b,c,d,1)
+#define dmulscale2(a,b,c,d) dmulscale(a,b,c,d,2)
+#define dmulscale3(a,b,c,d) dmulscale(a,b,c,d,3)
+#define dmulscale4(a,b,c,d) dmulscale(a,b,c,d,4)
+#define dmulscale5(a,b,c,d) dmulscale(a,b,c,d,5)
+#define dmulscale6(a,b,c,d) dmulscale(a,b,c,d,6)
+#define dmulscale7(a,b,c,d) dmulscale(a,b,c,d,7)
+#define dmulscale8(a,b,c,d) dmulscale(a,b,c,d,8)
+#define dmulscale9(a,b,c,d) dmulscale(a,b,c,d,9)
+#define dmulscale10(a,b,c,d) dmulscale(a,b,c,d,10)
+#define dmulscale11(a,b,c,d) dmulscale(a,b,c,d,11)
+#define dmulscale12(a,b,c,d) dmulscale(a,b,c,d,12)
+#define dmulscale13(a,b,c,d) dmulscale(a,b,c,d,13)
+#define dmulscale14(a,b,c,d) dmulscale(a,b,c,d,14)
+#define dmulscale15(a,b,c,d) dmulscale(a,b,c,d,15)
+#define dmulscale16(a,b,c,d) dmulscale(a,b,c,d,16)
+#define dmulscale17(a,b,c,d) dmulscale(a,b,c,d,17)
+#define dmulscale18(a,b,c,d) dmulscale(a,b,c,d,18)
+#define dmulscale19(a,b,c,d) dmulscale(a,b,c,d,19)
+#define dmulscale20(a,b,c,d) dmulscale(a,b,c,d,20)
+#define dmulscale21(a,b,c,d) dmulscale(a,b,c,d,21)
+#define dmulscale22(a,b,c,d) dmulscale(a,b,c,d,22)
+#define dmulscale23(a,b,c,d) dmulscale(a,b,c,d,23)
+#define dmulscale24(a,b,c,d) dmulscale(a,b,c,d,24)
+#define dmulscale25(a,b,c,d) dmulscale(a,b,c,d,25)
+#define dmulscale26(a,b,c,d) dmulscale(a,b,c,d,26)
+#define dmulscale27(a,b,c,d) dmulscale(a,b,c,d,27)
+#define dmulscale28(a,b,c,d) dmulscale(a,b,c,d,28)
+#define dmulscale29(a,b,c,d) dmulscale(a,b,c,d,29)
+#define dmulscale30(a,b,c,d) dmulscale(a,b,c,d,30)
+#define dmulscale31(a,b,c,d) dmulscale(a,b,c,d,31)
+#define dmulscale32(a,b,c,d) dmulscale(a,b,c,d,32)
+#define tmulscale1(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,1)
+#define tmulscale2(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,2)
+#define tmulscale3(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,3)
+#define tmulscale4(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,4)
+#define tmulscale5(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,5)
+#define tmulscale6(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,6)
+#define tmulscale7(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,7)
+#define tmulscale8(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,8)
+#define tmulscale9(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,9)
+#define tmulscale10(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,10)
+#define tmulscale11(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,11)
+#define tmulscale12(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,12)
+#define tmulscale13(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,13)
+#define tmulscale14(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,14)
+#define tmulscale15(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,15)
+#define tmulscale16(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,16)
+#define tmulscale17(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,17)
+#define tmulscale18(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,18)
+#define tmulscale19(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,19)
+#define tmulscale20(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,20)
+#define tmulscale21(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,21)
+#define tmulscale22(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,22)
+#define tmulscale23(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,23)
+#define tmulscale24(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,24)
+#define tmulscale25(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,25)
+#define tmulscale26(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,26)
+#define tmulscale27(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,27)
+#define tmulscale28(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,28)
+#define tmulscale29(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,29)
+#define tmulscale30(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,30)
+#define tmulscale31(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,31)
+#define tmulscale32(a,b,c,d,e,f) tmulscale(a,b,c,d,e,f,32)
+#else
 #define _scaler(a) \
 static inline int mulscale##a(int eax, int edx) \
 { \
@@ -3654,6 +3828,8 @@ _scaler(21)	_scaler(22)	_scaler(23)	_scaler(24)
 _scaler(25)	_scaler(26)	_scaler(27)	_scaler(28)
 _scaler(29)	_scaler(30)	_scaler(31)	_scaler(32)
 
+#endif
+
 static inline void swapchar(void* a, void* b)  { int8_t t = *((int8_t*)b); *((int8_t*)b) = *((int8_t*)a); *((int8_t*)a) = t; }
 static inline void swapchar2(void* a, void* b, int s) { swapchar(a,b); swapchar((int8_t*)a+1, (int8_t*)b+s); }
 static inline void swapshort(void* a, void* b) { int16_t t = *((int16_t*)b); *((int16_t*)b) = *((int16_t*)a); *((int16_t*)a) = t; }
@@ -3672,7 +3848,15 @@ static inline int mul9(int a) { return (a<<3)+a; }
 static inline int divmod(int a, int b) { unsigned int _a=(unsigned int)a, _b=(unsigned int)b; dmval = _a%_b; return _a/_b; }
 static inline int moddiv(int a, int b) { unsigned int _a=(unsigned int)a, _b=(unsigned int)b; dmval = _a/_b; return _a%_b; }
 
+#if defined(C4SW) && defined(__c4_inttypes__)
+// c4lc: a macro, not a call, as Duke Nukem 3D's port has it: the argument
+// worked out once, into klabs_v (c4lc works out each operand of
+// klabs(a) + klabs(b) whole before the next)
+static int klabs_v;
+#define klabs(a) (klabs_v = (a), klabs_v < 0 ? -klabs_v : klabs_v)
+#else
 static inline int klabs(int a) { if (a < 0) return -a; return a; }
+#endif
 static inline int ksgn(int a)  { if (a > 0) return 1; if (a < 0) return -1; return 0; }
 
 static inline int umin(int a, int b) { if ((unsigned int)a < (unsigned int)b) return a; return b; }
@@ -3681,10 +3865,12 @@ static inline int kmin(int a, int b) { if ((signed int)a < (signed int)b) return
 static inline int kmax(int a, int b) { if ((signed int)a < (signed int)b) return b; return a; }
 
 static inline int sqr(int eax) { return (eax) * (eax); }
+#if !(defined(C4SW) && defined(__c4_inttypes__))
 static inline int scale(int eax, int edx, int ecx) { return dw((qw(eax) * qw(edx)) / qw(ecx)); }
 static inline int mulscale(int eax, int edx, int ecx) { return dw((qw(eax) * qw(edx)) >> by(ecx)); }
 static inline int divscale(int eax, int ebx, int ecx) { return dw((qw(eax) << by(ecx)) / qw(ebx)); }
 static inline int dmulscale(int eax, int edx, int esi, int edi, int ecx) { return dw(((qw(eax) * qw(edx)) + (qw(esi) * qw(edi))) >> by(ecx)); }
+#endif
 
 static inline int boundmulscale(int a, int d, int c)
 { // courtesy of Ken
